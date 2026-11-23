@@ -44,6 +44,7 @@ RUN echo "@edgemain https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk
   bash \
   openssl \
   pcre \
+  pcre2 \
   zlib \
   ca-certificates \
   "libcrypto3@edgemain~3.5" \

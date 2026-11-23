@@ -35,8 +35,8 @@ export NGINX_DIGEST_AUTH=v1.0.0
 # Check for recent changes: https://github.com/owasp-modsecurity/ModSecurity-nginx/compare/v1.0.4...master
 export MODSECURITY_VERSION=v1.0.4
 
-# Check for recent changes: https://github.com/owasp-modsecurity/ModSecurity/compare/v3.0.14...v3/master
-export MODSECURITY_LIB_VERSION=v3.0.14
+# Check for recent changes: https://github.com/owasp-modsecurity/ModSecurity/compare/v3.0.17...v3/master
+export MODSECURITY_LIB_VERSION=v3.0.17
 
 # Check for recent changes: https://github.com/coreruleset/coreruleset/compare/v4.22.0...main
 export OWASP_MODSECURITY_CRS_VERSION=v4.22.0
@@ -143,6 +143,7 @@ apk add \
   automake \
   openssl-dev \
   pcre-dev \
+  pcre2-dev \
   zlib-dev \
   linux-headers \
   libxslt-dev \
@@ -339,24 +340,14 @@ cd "$BUILD_PATH"
 git clone -n https://github.com/owasp-modsecurity/ModSecurity
 cd ModSecurity/
 git checkout $MODSECURITY_LIB_VERSION
-git submodule init
-git submodule update
+# --recursive: since v3.0.15 the bundled Mbed TLS submodule has a nested submodule.
+git submodule update --init --recursive
 
+# ModSecurity >= 3.0.15 detects LuaJIT 2.1 itself (-DWITH_LUA_JIT_2_1), so the old
+# build/lua.m4 workaround (ModSecurity issue #1909) is no longer needed.
 sh build.sh
 
-# https://github.com/owasp-modsecurity/ModSecurity/issues/1909#issuecomment-465926762
-sed -i '115i LUA_CFLAGS="${LUA_CFLAGS} -DWITH_LUA_JIT_2_1"' build/lua.m4
-sed -i '117i AC_SUBST(LUA_CFLAGS)' build/lua.m4
-
-#
-# As of Alpine v3.23.0, building ModSecurity fails with:
-#
-# headers/modsecurity/collection/collection.h:x:x: error: 'int32_t' has not been declared
-# headers/modsecurity/collection/collection.h:x:x: note: 'int32_t' is defined in header '<cstdint>'; this is probably fixable by adding '#include <cstdint>'
-#
-# Sadly this has not been fixed upstream, yet, so we manually patch it here.
-#
-sed -i '24i #include <cstdint>' headers/modsecurity/collection/collection.h
+# The <cstdint> include needed on Alpine >= 3.23 is upstream since ModSecurity v3.0.15.
 
 ./configure \
   --disable-doxygen-doc \
@@ -436,6 +427,7 @@ done
 WITH_FLAGS="--with-debug \
   --with-compat \
   --with-pcre-jit \
+  --without-pcre2 \
   --with-http_ssl_module \
   --with-http_stub_status_module \
   --with-http_realip_module \
