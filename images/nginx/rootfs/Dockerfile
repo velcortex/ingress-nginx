@@ -33,7 +33,12 @@ COPY --from=builder /usr/lib/libopentelemetry* /usr/local/lib
 COPY --from=builder /opt /opt
 COPY --from=builder /etc/nginx /etc/nginx
 
-RUN apk update \
+# OpenSSL 3.5.9-r1 (CVE-2026-88822/88823/95691/95692/107496) is only in
+# Alpine edge so far; pin just these three packages from edge via a tagged repo.
+# Remove the @edgemain pin once 3.23-stable ships openssl >= 3.5.9-r1.
+# 'patch' dropped from the runtime image (build-time tool only).
+RUN echo "@edgemain https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories \
+  && apk update \
   && apk upgrade \
   && apk add -U --no-cache \
   bash \
@@ -41,7 +46,9 @@ RUN apk update \
   pcre \
   zlib \
   ca-certificates \
-  patch \
+  "libcrypto3@edgemain~3.5" \
+  "libssl3@edgemain~3.5" \
+  "openssl@edgemain~3.5" \
   yajl \
   lmdb \
   libxml2 \
