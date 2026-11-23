@@ -32,8 +32,17 @@ NGINX is upgraded to a fixed release rather than patched in place, so vulnerabil
 version from the binary report the fixed version. The full list is in
 [changelog/controller-1.16.0.md](changelog/controller-1.16.0.md).
 
-Known remaining scanner findings: the Alpine 3.23 packages `libxml2` and `protobuf` have open advisories without a
-fixed package at the time of this release.
+### Scanner results at release
+
+| Scanner | Result |
+|---|---|
+| Trivy | No known vulnerabilities reported |
+| Grype | None reported against NGINX. 40 findings remain on Alpine packages: OpenSSL 3.5.9-r1 (`openssl`, `libssl3`, `libcrypto3`), `busybox` (CVE-2025-60876) and `nghttp2-libs` (CVE-2026-58055), with no fixed package version listed |
+
+Some scanners also report open advisories for the Alpine 3.23 packages `libxml2` (2.13.9-r1) and `protobuf` (31.1-r1).
+These are the newest versions available in Alpine 3.23 at the time of this release.
+
+Results depend on the scanner and its database date. Scan the image yourself before you rely on it.
 
 ## Images
 
@@ -70,8 +79,7 @@ make build image ARCH=amd64 REGISTRY=<registry>/ingress-nginx TAG=v1.16.0
 ```
 
 This fork is provided as-is under the Apache-2.0 license, without any warranty or support commitment. Test it in
-your own environment before using it in production. Ingress NGINX remains a retired project; plan a migration to
-[Gateway API](https://gateway-api.sigs.k8s.io/) in the long term.
+your own environment before using it in production. Ingress NGINX remains a retired project upstream.
 
 # Ingress NGINX Retirement
 

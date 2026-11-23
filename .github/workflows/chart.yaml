@@ -16,6 +16,8 @@ permissions:
 jobs:
   release:
     name: Release
+    # Publishes the Helm chart to the upstream chart repository; do not run in forks.
+    if: github.repository == 'kubernetes/ingress-nginx'
     runs-on: ubuntu-latest
 
     permissions:

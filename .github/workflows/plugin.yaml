@@ -9,6 +9,8 @@ permissions:
 
 jobs:
   release-plugin:
+    # Publishes the kubectl plugin to krew under the upstream name; do not run in forks.
+    if: github.repository == 'kubernetes/ingress-nginx'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
