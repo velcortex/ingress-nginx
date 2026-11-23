@@ -20,18 +20,39 @@ NGINX is upgraded to a fixed release rather than patched in place, so vulnerabil
 version from the binary report the fixed version. See [changelog/controller-1.16.0.md](changelog/controller-1.16.0.md)
 for the list of CVEs addressed.
 
-Build the images from a release tag:
+## Images
 
-```console
-# NGINX base image
-docker build -t <registry>/ingress-nginx/nginx:v2.4.0 images/nginx/rootfs
+| Image | Reference |
+|---|---|
+| Controller | `ghcr.io/velcortex/ingress-nginx/controller:v1.16.0@sha256:3f11293584b8b8c0ffc7dc2e419278645097a036414d0bad4e821a7679f1a679` |
+| NGINX base (build time only) | `ghcr.io/velcortex/ingress-nginx/nginx:v2.4.0@sha256:a264ea37e70e3dcc1086e624d999c930c4b36604cbbabb85af6d8d8dd07c5a20` |
 
-# Controller image on top of it
-make build image REGISTRY=<registry>/ingress-nginx TAG=v1.16.0 BASE_IMAGE=<registry>/ingress-nginx/nginx:v2.4.0
+Images are built for `linux/amd64`.
+
+## Use it with the upstream Helm chart
+
+Only the controller image changes. Keep your existing values and override the image:
+
+```yaml
+controller:
+  image:
+    registry: ghcr.io/velcortex
+    image: ingress-nginx/controller
+    tag: v1.16.0
+    digest: sha256:3f11293584b8b8c0ffc7dc2e419278645097a036414d0bad4e821a7679f1a679
 ```
 
-Then point the upstream Helm chart at the image with `controller.image.registry`, `controller.image.image`,
-`controller.image.tag` and an empty `controller.image.digest`.
+The chart ships with the digest of the upstream image, so `digest` must be set as above (or to an empty string).
+
+## Build it yourself
+
+```console
+# NGINX base image (optional, the published base is referenced in NGINX_BASE)
+docker build -t <registry>/ingress-nginx/nginx:v2.4.0 images/nginx/rootfs
+
+# Controller image
+make build image ARCH=amd64 REGISTRY=<registry>/ingress-nginx TAG=v1.16.0
+```
 
 This fork is provided as-is under the Apache-2.0 license, without any warranty or support commitment. Test it in
 your own environment before using it in production. Ingress NGINX remains a retired project; plan a migration to

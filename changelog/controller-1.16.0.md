@@ -6,7 +6,10 @@ First release of this community fork of [kubernetes/ingress-nginx](https://githu
 based on `controller-v1.15.1` (the last upstream release before the project was retired).
 The controller code, flags, annotations, IngressClass and Helm values are unchanged; this
 release only updates the bundled components to clear known vulnerabilities.
-No image digests are listed here; build the images from this tag (see README).
+
+Images:
+
+* ghcr.io/velcortex/ingress-nginx/controller:v1.16.0@sha256:3f11293584b8b8c0ffc7dc2e419278645097a036414d0bad4e821a7679f1a679
 
 ### Security / component updates:
 
