@@ -1,3 +1,42 @@
+# Community fork: Ingress NGINX with security updates
+
+This repository is a community fork of [kubernetes/ingress-nginx](https://github.com/kubernetes/ingress-nginx),
+which was retired in March 2026 and no longer receives security fixes. It continues from the last upstream
+release, `controller-v1.15.1`, and updates the bundled components to clear known vulnerabilities.
+
+The controller code, command line flags, annotations, IngressClass and Helm chart values are unchanged, so it is a
+drop-in replacement for the upstream `v1.15.1` controller image.
+
+| Component | Upstream v1.15.1 | This fork v1.16.0 |
+|---|---|---|
+| NGINX | 1.27.1 | 1.30.7 |
+| ModSecurity (libmodsecurity) | 3.0.14 | 3.0.17 |
+| Go | 1.26.1 | 1.26.11 |
+| OpenSSL | 3.5.x (Alpine 3.23) | 3.5.9-r1 |
+| Lua modules / LuaJIT | OpenResty 1.27 set | OpenResty 1.29.8.1 set (required by NGINX 1.30) |
+| Alpine | 3.23.3 | 3.23.8 |
+
+NGINX is upgraded to a fixed release rather than patched in place, so vulnerability scanners that read the NGINX
+version from the binary report the fixed version. See [changelog/controller-1.16.0.md](changelog/controller-1.16.0.md)
+for the list of CVEs addressed.
+
+Build the images from a release tag:
+
+```console
+# NGINX base image
+docker build -t <registry>/ingress-nginx/nginx:v2.4.0 images/nginx/rootfs
+
+# Controller image on top of it
+make build image REGISTRY=<registry>/ingress-nginx TAG=v1.16.0 BASE_IMAGE=<registry>/ingress-nginx/nginx:v2.4.0
+```
+
+Then point the upstream Helm chart at the image with `controller.image.registry`, `controller.image.image`,
+`controller.image.tag` and an empty `controller.image.digest`.
+
+This fork is provided as-is under the Apache-2.0 license, without any warranty or support commitment. Test it in
+your own environment before using it in production. Ingress NGINX remains a retired project; plan a migration to
+[Gateway API](https://gateway-api.sigs.k8s.io/) in the long term.
+
 # Ingress NGINX Retirement
 
 ## Retiring
