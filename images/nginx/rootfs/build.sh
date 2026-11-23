@@ -18,16 +18,16 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-export NGINX_VERSION=1.27.1
+export NGINX_VERSION=1.30.7
 
 # Check for recent changes: https://github.com/vision5/ngx_devel_kit/compare/v0.3.3...master
-export NDK_VERSION=v0.3.3
+export NDK_VERSION=v0.3.4
 
 # Check for recent changes: https://github.com/openresty/set-misc-nginx-module/compare/v0.33...master
 export SETMISC_VERSION=v0.33
 
 # Check for recent changes: https://github.com/openresty/headers-more-nginx-module/compare/v0.37...master
-export MORE_HEADERS_VERSION=v0.37
+export MORE_HEADERS_VERSION=v0.39
 
 # Check for recent changes: https://github.com/atomx/nginx-http-auth-digest/compare/v1.0.0...master
 export NGINX_DIGEST_AUTH=v1.0.0
@@ -35,29 +35,29 @@ export NGINX_DIGEST_AUTH=v1.0.0
 # Check for recent changes: https://github.com/owasp-modsecurity/ModSecurity-nginx/compare/v1.0.4...master
 export MODSECURITY_VERSION=v1.0.4
 
-# Check for recent changes: https://github.com/owasp-modsecurity/ModSecurity/compare/v3.0.14...v3/master
-export MODSECURITY_LIB_VERSION=v3.0.14
+# Check for recent changes: https://github.com/owasp-modsecurity/ModSecurity/compare/v3.0.17...v3/master
+export MODSECURITY_LIB_VERSION=v3.0.17
 
 # Check for recent changes: https://github.com/coreruleset/coreruleset/compare/v4.22.0...main
 export OWASP_MODSECURITY_CRS_VERSION=v4.22.0
 
 # Check for recent changes: https://github.com/openresty/lua-nginx-module/compare/v0.10.28...master
-export LUA_NGX_VERSION=v0.10.28
+export LUA_NGX_VERSION=v0.10.31rc2
 
 # Check for recent changes: https://github.com/openresty/stream-lua-nginx-module/compare/v0.0.16...master
-export LUA_STREAM_NGX_VERSION=v0.0.16
+export LUA_STREAM_NGX_VERSION=v0.0.19rc2
 
 # Check for recent changes: https://github.com/openresty/lua-upstream-nginx-module/compare/v0.07...master
-export LUA_UPSTREAM_VERSION=v0.07
+export LUA_UPSTREAM_VERSION=v0.08
 
 # Check for recent changes: https://github.com/openresty/lua-cjson/compare/2.1.0.14...master
-export LUA_CJSON_VERSION=2.1.0.14
+export LUA_CJSON_VERSION=2.1.0.17
 
 # Check for recent changes: https://github.com/leev/ngx_http_geoip2_module/compare/445df24ef3781e488cee3dfe8a1e111997fc1dfe...master
 export GEOIP2_VERSION=445df24ef3781e488cee3dfe8a1e111997fc1dfe
 
 # Check for recent changes: https://github.com/openresty/luajit2/compare/v2.1-20250117...v2.1-agentzh
-export LUAJIT_VERSION=v2.1-20250117
+export LUAJIT_VERSION=v2.1-20260415
 
 # Check for recent changes: https://github.com/openresty/lua-resty-balancer/compare/v0.05...master
 export LUA_RESTY_BALANCER=v0.05
@@ -66,7 +66,7 @@ export LUA_RESTY_BALANCER=v0.05
 export LUA_RESTY_CACHE=v0.15
 
 # Check for recent changes: https://github.com/openresty/lua-resty-core/compare/v0.1.31...master
-export LUA_RESTY_CORE=v0.1.31
+export LUA_RESTY_CORE=v0.1.34rc2
 
 # Check for recent changes: https://github.com/cloudflare/lua-resty-cookie/compare/f418d77082eaef48331302e84330488fdc810ef4...master
 export LUA_RESTY_COOKIE_VERSION=f418d77082eaef48331302e84330488fdc810ef4
@@ -84,13 +84,13 @@ export LUA_RESTY_LOCK=v0.09
 export LUA_RESTY_UPLOAD_VERSION=v0.11
 
 # Check for recent changes: https://github.com/openresty/lua-resty-string/compare/v0.16...master
-export LUA_RESTY_STRING_VERSION=v0.16
+export LUA_RESTY_STRING_VERSION=v0.17
 
 # Check for recent changes: https://github.com/openresty/lua-resty-memcached/compare/v0.17...master
 export LUA_RESTY_MEMCACHED_VERSION=v0.17
 
 # Check for recent changes: https://github.com/openresty/lua-resty-redis/compare/v0.31...master
-export LUA_RESTY_REDIS_VERSION=v0.31
+export LUA_RESTY_REDIS_VERSION=v0.33
 
 # Check for recent changes: https://github.com/api7/lua-resty-ipmatcher/compare/3e93c53eb8c9884efe939ef070486a0e507cc5be...master
 export LUA_RESTY_IPMATCHER_VERSION=3e93c53eb8c9884efe939ef070486a0e507cc5be
@@ -143,6 +143,7 @@ apk add \
   automake \
   openssl-dev \
   pcre-dev \
+  pcre2-dev \
   zlib-dev \
   linux-headers \
   libxslt-dev \
@@ -339,24 +340,14 @@ cd "$BUILD_PATH"
 git clone -n https://github.com/owasp-modsecurity/ModSecurity
 cd ModSecurity/
 git checkout $MODSECURITY_LIB_VERSION
-git submodule init
-git submodule update
+# --recursive: since v3.0.15 the bundled Mbed TLS submodule has a nested submodule.
+git submodule update --init --recursive
 
+# ModSecurity >= 3.0.15 detects LuaJIT 2.1 itself (-DWITH_LUA_JIT_2_1), so the old
+# build/lua.m4 workaround (ModSecurity issue #1909) is no longer needed.
 sh build.sh
 
-# https://github.com/owasp-modsecurity/ModSecurity/issues/1909#issuecomment-465926762
-sed -i '115i LUA_CFLAGS="${LUA_CFLAGS} -DWITH_LUA_JIT_2_1"' build/lua.m4
-sed -i '117i AC_SUBST(LUA_CFLAGS)' build/lua.m4
-
-#
-# As of Alpine v3.23.0, building ModSecurity fails with:
-#
-# headers/modsecurity/collection/collection.h:x:x: error: 'int32_t' has not been declared
-# headers/modsecurity/collection/collection.h:x:x: note: 'int32_t' is defined in header '<cstdint>'; this is probably fixable by adding '#include <cstdint>'
-#
-# Sadly this has not been fixed upstream, yet, so we manually patch it here.
-#
-sed -i '24i #include <cstdint>' headers/modsecurity/collection/collection.h
+# The <cstdint> include needed on Alpine >= 3.23 is upstream since ModSecurity v3.0.15.
 
 ./configure \
   --disable-doxygen-doc \
@@ -436,6 +427,7 @@ done
 WITH_FLAGS="--with-debug \
   --with-compat \
   --with-pcre-jit \
+  --without-pcre2 \
   --with-http_ssl_module \
   --with-http_stub_status_module \
   --with-http_realip_module \

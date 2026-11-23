@@ -33,6 +33,9 @@ LABEL build_id="${BUILD_ID}"
 
 WORKDIR  /etc/nginx
 
+# the base pins OpenSSL 3.5.9-r1 (Alpine edge, @edgemain tag, ~3.5 only).
+# The pin stays active for every apk step in this build; it is stripped in the
+# very last RUN below (no apk call after it), see "final cleanup".
 RUN apk update \
   && apk upgrade \
   && apk add --no-cache \
@@ -76,7 +79,12 @@ RUN apk add --no-cache libcap \
   && setcap    cap_net_bind_service=+ep /usr/bin/dumb-init \
   && setcap -v cap_net_bind_service=+ep /usr/bin/dumb-init \
   && apk del libcap \
-  && ln -sf /usr/local/nginx/sbin/nginx /usr/bin/nginx
+  && ln -sf /usr/local/nginx/sbin/nginx /usr/bin/nginx \
+  # Final cleanup - no apk command may run after this point.
+  # Removes the Alpine edge repo/tag so the shipped image references only the
+  # v3.23 repos; the already-installed OpenSSL 3.5.9-r1 packages are kept.
+  && sed -i '/@edgemain/d' /etc/apk/repositories \
+  && sed -i -E 's/@edgemain[^ ]*$//' /etc/apk/world
 
 USER www-data
 

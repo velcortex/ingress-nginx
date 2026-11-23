@@ -1,3 +1,78 @@
+# Community fork: Ingress NGINX with security updates
+
+This repository is a community fork of [kubernetes/ingress-nginx](https://github.com/kubernetes/ingress-nginx),
+which was retired in March 2026 and no longer receives security fixes. It continues from the last upstream
+release, `controller-v1.15.1`, and updates the bundled components to clear known vulnerabilities.
+
+The controller code, command line flags, annotations, IngressClass and Helm chart values are unchanged, so it is a
+drop-in replacement for the upstream `v1.15.1` controller image.
+
+| Component | Upstream v1.15.1 | This fork v1.16.0 |
+|---|---|---|
+| NGINX | 1.27.1 | 1.30.7 |
+| ModSecurity (libmodsecurity) | 3.0.14 | 3.0.17 |
+| Go | 1.26.1 | 1.26.11 |
+| OpenSSL | 3.5.x (Alpine 3.23) | 3.5.9-r1 |
+| Lua modules / LuaJIT | OpenResty 1.27 set | OpenResty 1.29.8.1 set (required by NGINX 1.30) |
+| Alpine | 3.23.3 | 3.23.8 |
+
+## Security fixes in v1.16.0
+
+* **NGINX "NGINX2Root" (November 2026):** CVE-2026-123007, CVE-2026-123633, CVE-2026-123634, CVE-2026-121810 and
+  CVE-2026-118899, fixed by moving to NGINX 1.30.7. CVE-2026-113425 (mail proxy) does not apply, the mail module is
+  not built.
+* **Earlier NGINX vulnerabilities** fixed between 1.27.2 and 1.30.7, for example CVE-2026-42945, CVE-2026-9256,
+  CVE-2026-42055, CVE-2026-42533, CVE-2026-97205, CVE-2026-56434, CVE-2026-97629, CVE-2026-1642 and CVE-2026-60005.
+* **ModSecurity:** CVE-2026-42268, CVE-2026-30923, CVE-2026-52747, CVE-2026-73856, CVE-2026-73857 and
+  CVE-2026-104269, fixed by moving to libmodsecurity 3.0.17.
+* **Go standard library and modules:** fixed by building with Go 1.26.11 and updated dependencies.
+* **OpenSSL:** CVE-2026-88822, CVE-2026-88823, CVE-2026-95691, CVE-2026-95692 and CVE-2026-107496, fixed in 3.5.9-r1.
+
+NGINX is upgraded to a fixed release rather than patched in place, so vulnerability scanners that read the NGINX
+version from the binary report the fixed version. The full list is in
+[changelog/controller-1.16.0.md](changelog/controller-1.16.0.md).
+
+Known remaining scanner findings: the Alpine 3.23 packages `libxml2` and `protobuf` have open advisories without a
+fixed package at the time of this release.
+
+## Images
+
+| Image | Reference |
+|---|---|
+| Controller | `ghcr.io/velcortex/ingress-nginx/controller:v1.16.0@sha256:3f11293584b8b8c0ffc7dc2e419278645097a036414d0bad4e821a7679f1a679` |
+| NGINX base (build time only) | `ghcr.io/velcortex/ingress-nginx/nginx:v2.4.0@sha256:a264ea37e70e3dcc1086e624d999c930c4b36604cbbabb85af6d8d8dd07c5a20` |
+
+Images are built for `linux/amd64`.
+
+## Use it with the upstream Helm chart
+
+Only the controller image changes. Keep your existing values and override the image:
+
+```yaml
+controller:
+  image:
+    registry: ghcr.io/velcortex
+    image: ingress-nginx/controller
+    tag: v1.16.0
+    digest: sha256:3f11293584b8b8c0ffc7dc2e419278645097a036414d0bad4e821a7679f1a679
+```
+
+The chart ships with the digest of the upstream image, so `digest` must be set as above (or to an empty string).
+
+## Build it yourself
+
+```console
+# NGINX base image (optional, the published base is referenced in NGINX_BASE)
+docker build -t <registry>/ingress-nginx/nginx:v2.4.0 images/nginx/rootfs
+
+# Controller image
+make build image ARCH=amd64 REGISTRY=<registry>/ingress-nginx TAG=v1.16.0
+```
+
+This fork is provided as-is under the Apache-2.0 license, without any warranty or support commitment. Test it in
+your own environment before using it in production. Ingress NGINX remains a retired project; plan a migration to
+[Gateway API](https://gateway-api.sigs.k8s.io/) in the long term.
+
 # Ingress NGINX Retirement
 
 ## Retiring
@@ -47,8 +122,13 @@ For detailed changes on the `ingress-nginx` helm chart, please check the changel
 Supported versions for the ingress-nginx project mean that we have completed E2E tests, and they are passing for
 the versions listed. Ingress-Nginx versions **may** work on older versions, but the project does not make that guarantee.
 
+For v1.16.0 of this fork, the E2E suite was run on Kubernetes 1.35 and a functional and load check on Kubernetes 1.33. The controller code is unchanged from v1.15.1, so the
+other Kubernetes versions are carried over from that release and were not re-tested. No new Helm chart is published;
+use chart 4.15.1 with the image override described at the top of this page.
+
 | Supported | Ingress-NGINX version | k8s supported version         | Alpine Version | Nginx Version | Helm Chart Version |
 | :-------: | --------------------- | ----------------------------- | -------------- | ------------- | ------------------ |
+|    🔄     | **v1.16.0** (this fork) | 1.35, 1.34, 1.33, 1.32, 1.31  | 3.23.8         | 1.30.7        | 4.15.1 (image override) |
 |    🔄     | **v1.15.1**           | 1.35, 1.34, 1.33, 1.32, 1.31  | 3.23.3         | 1.27.1        | 4.15.1             |
 |    🔄     | **v1.15.0**           | 1.35, 1.34, 1.33, 1.32, 1.31  | 3.23.3         | 1.27.1        | 4.15.0             |
 |    🔄     | **v1.14.4**           | 1.34, 1.33, 1.32, 1.31, 1.30  | 3.23.3         | 1.27.1        | 4.14.4             |
